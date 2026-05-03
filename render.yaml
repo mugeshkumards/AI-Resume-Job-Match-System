@@ -1,0 +1,34 @@
+# Render Blueprint — deploy both backend and frontend as a single web service
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: resume-ai
+    runtime: python
+    buildCommand: |
+      pip install -r backend/requirements.txt
+      cd frontend && npm install && npm run build && cd ..
+    startCommand: >-
+      cd backend &&
+      gunicorn main:app
+      --workers 2
+      --worker-class uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:$PORT
+      --timeout 180
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_URL
+        generateValue: false
+      - key: DATABASE_PATH
+        value: /opt/render/project/src/backend/resume_match.db
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: NODE_VERSION
+        value: 20
+    healthCheckPath: /health
+    autoDeploy: true
