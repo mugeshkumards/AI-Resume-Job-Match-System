@@ -10,9 +10,12 @@ from backend.config import GEMINI_API_KEY, GEMINI_MODEL, GEMINI_BASE_URL
 logger = logging.getLogger(__name__)
 
 # Maximum number of retries for rate-limited requests
-MAX_RETRIES = 5
-# Base delay in seconds for exponential backoff
-BASE_DELAY = 2.0
+MAX_RETRIES = 6
+# Base delay in seconds — Gemini free tier is ~15 RPM, so we need
+# delays that actually wait out the rate-limit window (60s).
+# Backoff sequence: 10s, 20s, 40s, 60s, 60s, 60s
+BASE_DELAY = 10.0
+MAX_DELAY = 60.0
 
 
 class BaseAgent:
@@ -58,7 +61,7 @@ class BaseAgent:
 
                     # Handle rate limiting (429) and service unavailable (503)
                     if response.status_code in (429, 503):
-                        delay = BASE_DELAY * (2 ** (attempt - 1))  # Exponential backoff
+                        delay = min(BASE_DELAY * (2 ** (attempt - 1)), MAX_DELAY)
                         logger.warning(
                             f"[{self.name}] Server returned {response.status_code}. "
                             f"Retrying in {delay}s (attempt {attempt}/{MAX_RETRIES})"
@@ -75,7 +78,7 @@ class BaseAgent:
 
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (429, 503):
-                    delay = BASE_DELAY * (2 ** (attempt - 1))
+                    delay = min(BASE_DELAY * (2 ** (attempt - 1)), MAX_DELAY)
                     logger.warning(
                         f"[{self.name}] Server returned {e.response.status_code}. "
                         f"Retrying in {delay}s (attempt {attempt}/{MAX_RETRIES})"
