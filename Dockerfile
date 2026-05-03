@@ -26,5 +26,5 @@ ENV PORT=8001
 
 EXPOSE 8001
 
-# Start with gunicorn
-CMD ["sh", "-c", "cd backend && gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT} --timeout 180"]
+# Start from project root using module path
+CMD ["sh", "-c", "gunicorn backend.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT} --timeout 180"]
